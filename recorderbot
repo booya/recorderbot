@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# This script monitors the audio input for non-silence and automatically starts recording.
+# It will run continuously until stopped.
+# See http://sox.sourceforge.net/sox.html for more options.
+
+# tunable parameters
+WORKINGDIR="/home/incognitus/RECS/"
+SOXDIR="/usr/bin"
+STOPFILE="stoprecording"
+LOGFILE="output.log"
+VERBOSITY="0"
+
+FILENAME_PREFIX="REC0"
+OUTPUT_FORMAT="wav"
+MIN_DURATION="19" # delete recordings shorter than this many minutes
+
+# see the sox man page for the silence plugin
+ABOVE_PERIODS="1 0.50 0.1%"
+BELOW_PERIODS="2 00:03 0.1%"
+
+# silence thresholds should come in here.
+
+##
+## no more user-servicable parts!
+## 
+
+# Initialisation
+echo `date` "Starting up." 
+cd $WORKINGDIR
+
+# Loop until somebody creates $STOPFILE
+while [ ! -f $STOPFILE ] ;  do
+
+  # Look for the last recording made
+  # This code is stupid.  going to use IDFILE instead.
+  LAST_ID=`ls -at $FILENAME_PREFIX*$OUTPUT_FORMAT | head -1 | sed "s/$FILENAME_PREFIX//; s/$OUTPUT_FORMAT//" | tr -d . `
+  echo "Last ID is: " $LAST_ID 
+
+  # Increment the REC ID 
+  let REC_ID="$LAST_ID + 1"
+  CURRENT_FILE=$FILENAME_PREFIX$REC_ID.$OUTPUT_FORMAT
+
+  echo "Waiting for audio stream to start.  Will record ($CURRENT_FILE)."
+  #$SOXDIR/rec  $CURRENT_FILE silence 1 0.50 0.1% 2 00:03 0.1%
+  $SOXDIR/rec  $CURRENT_FILE silence $ABOVE_PERIODS $BELOW_PERIODS
+  if [ $? -ne 0 ] ; then
+    echo "Abnormal exit status.  Keeping $CURRENT_FILE."
+    continue
+  fi
+
+  # Check the duration of the recording is longer than $MIN_DURATION.  This helps
+  # avoid crap such as pops when equipment is turned on, or if a DJ blows the
+  # first mix and wants to start again.
+  REC_DURATION=`$SOXDIR/soxi -d $CURRENT_FILE`
+  REC_HOURS=`echo $REC_DURATION | cut -d: -f1`
+  REC_MINUTES=`echo $REC_DURATION | cut -d: -f2`
+
+  if [ $REC_HOURS = "00" ] && [ $REC_MINUTES -lt $MIN_DURATION ]; then
+    echo "Recording discarded; too short ($REC_DURATION)"
+    rm -f $CURRENT_FILE
+  else
+    echo "Keeping $CURRENT_FILE ($REC_DURATION)."
+  fi
+
+done
