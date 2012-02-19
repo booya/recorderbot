@@ -1,31 +1,32 @@
 #!/bin/bash
 
-# This script monitors the audio input for non-silence and automatically starts recording.
-# It will run continuously until stopped.
-# See http://sox.sourceforge.net/sox.html for more options.
-
-# tunable parameters
+# All files go here.
 WORKINGDIR="/home/incognitus/RECS/"
 SOXDIR="/usr/bin"
 STOPFILE="stoprecording"
+
+# Logging stuff that doesn't actually exist yet
 LOGFILE="output.log"
 VERBOSITY="0"
 
+# File naming
 FILENAME_PREFIX="REC0"
-OUTPUT_FORMAT="wav"
-MIN_DURATION="19" # delete recordings shorter than this many minutes
+FILENAME_SUFFIX=""
+OUTPUT_FORMAT="flac"
 
-# see the sox man page for the silence plugin
+# Minimum duration (in minutes) in order to keep a recording.
+# Set to 0 to keep everything.
+MIN_DURATION="19"
+
+# Silence detection parameters.  See sox(1) or 
+# http://digitalcardboard.com/blog/2009/08/25/the-sox-of-silence/
 ABOVE_PERIODS="1 0.50 0.1%"
 BELOW_PERIODS="2 00:03 0.1%"
-
-# silence thresholds should come in here.
 
 ##
 ## no more user-servicable parts!
 ## 
 
-# Initialisation
 echo `date` "Starting up." 
 cd $WORKINGDIR
 
@@ -42,7 +43,6 @@ while [ ! -f $STOPFILE ] ;  do
   CURRENT_FILE=$FILENAME_PREFIX$REC_ID.$OUTPUT_FORMAT
 
   echo "Waiting for audio stream to start.  Will record ($CURRENT_FILE)."
-  #$SOXDIR/rec  $CURRENT_FILE silence 1 0.50 0.1% 2 00:03 0.1%
   $SOXDIR/rec  $CURRENT_FILE silence $ABOVE_PERIODS $BELOW_PERIODS
   if [ $? -ne 0 ] ; then
     echo "Abnormal exit status.  Keeping $CURRENT_FILE."

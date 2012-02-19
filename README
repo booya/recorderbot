@@ -1,1 +1,10 @@
-Todo:  Make this file useful :)
+recorderbot v0.1
+
+recorderbot is a script for creating incrementally numbered audio files.  It continually
+monitors the default audio input device until it detects non-silence, and will record
+everything until silence is detected again.  If the file is too short it will be discarded; 
+otherwise it will be kept, the ID number is incremented.  It will do this forever until
+STOPFILE is created, or there is a power outage, etc.
+
+The default settings are suitable for recording DJ sets, however other uses are possible
+by tweaking the silence parameters.  
