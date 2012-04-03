@@ -1,66 +1,62 @@
 #!/bin/bash
 
-# All files go here.
+# This script monitors the audio input for non-silence and automatically starts recording.
+# It will run continuously until stopped.
+# See http://sox.sourceforge.net/sox.html for more options.
+
+# tunable parameters
 WORKINGDIR="/home/incognitus/RECS/"
+STARTIDFILE="startid"
 SOXDIR="/usr/bin"
 STOPFILE="stoprecording"
 
-# Logging stuff that doesn't actually exist yet
+# no logging yet
 LOGFILE="output.log"
 VERBOSITY="0"
 
-# File naming
 FILENAME_PREFIX="REC0"
-FILENAME_SUFFIX=""
 OUTPUT_FORMAT="flac"
+MIN_DURATION="0" # delete recordings shorter than this many minutes
 
-# Minimum duration (in minutes) in order to keep a recording.
-# Set to 0 to keep everything.
-MIN_DURATION="19"
-
-# Silence detection parameters.  See sox(1) or 
-# http://digitalcardboard.com/blog/2009/08/25/the-sox-of-silence/
+# see the sox man page for the silence plugin
 ABOVE_PERIODS="1 0.50 0.1%"
 BELOW_PERIODS="2 00:03 0.1%"
 
-##
-## no more user-servicable parts!
-## 
+tag ()
+{
+  flac -s -f -T "Album=REC Sessions" -T "URL=http://radio.beats.to" -T "Recorded=`date`" $1
+}
 
+# let's go
 echo `date` "Starting up." 
 cd $WORKINGDIR
 
 # Loop until somebody creates $STOPFILE
 while [ ! -f $STOPFILE ] ;  do
 
-  # Look for the last recording made
-  # This code is stupid.  going to use IDFILE instead.
-  LAST_ID=`ls -at $FILENAME_PREFIX*$OUTPUT_FORMAT | head -1 | sed "s/$FILENAME_PREFIX//; s/$OUTPUT_FORMAT//" | tr -d . `
-  echo "Last ID is: " $LAST_ID 
-
-  # Increment the REC ID 
-  let REC_ID="$LAST_ID + 1"
+  # Prepare the file name
+  REC_ID=`head -1 $STARTIDFILE`
   CURRENT_FILE=$FILENAME_PREFIX$REC_ID.$OUTPUT_FORMAT
-
-  echo "Waiting for audio stream to start.  Will record ($CURRENT_FILE)."
+  
+  echo "Waiting for audio stream to start.  Will record ($CURRENT_FILE)." 
   $SOXDIR/rec  $CURRENT_FILE silence $ABOVE_PERIODS $BELOW_PERIODS
-  if [ $? -ne 0 ] ; then
-    echo "Abnormal exit status.  Keeping $CURRENT_FILE."
-    continue
-  fi
 
-  # Check the duration of the recording is longer than $MIN_DURATION.  This helps
-  # avoid crap such as pops when equipment is turned on, or if a DJ blows the
-  # first mix and wants to start again.
-  REC_DURATION=`$SOXDIR/soxi -d $CURRENT_FILE`
-  REC_HOURS=`echo $REC_DURATION | cut -d: -f1`
-  REC_MINUTES=`echo $REC_DURATION | cut -d: -f2`
+  # Check the duration of the recording is longer than $MIN_DURATION.  This helps 
+  # avoid crap such as pops when equipment is turned on.
+  if [ $MIN_DURATION != 0 ]; then
 
-  if [ $REC_HOURS = "00" ] && [ $REC_MINUTES -lt $MIN_DURATION ]; then
-    echo "Recording discarded; too short ($REC_DURATION)"
+    REC_DURATION=`$SOXDIR/soxi -d $CURRENT_FILE`
+    REC_HOURS=`echo $REC_DURATION | cut -d: -f1`
+    REC_MINUTES=`echo $REC_DURATION | cut -d: -f2`
+
+    if [ $REC_HOURS = "00" ] && [ $REC_MINUTES -lt $MIN_DURATION ]; then
+    echo "Recording discarded; too short ($REC_DURATION)" 
     rm -f $CURRENT_FILE
   else
     echo "Keeping $CURRENT_FILE ($REC_DURATION)."
+    tag $CURRENT_FILE
+    # increment the ID
+    echo $REC_ID " + 1" | bc > $STARTIDFILE
   fi
 
 done
