@@ -5,7 +5,7 @@
 # See http://sox.sourceforge.net/sox.html for more options.
 
 # tunable parameters
-WORKINGDIR="/home/incognitus/RECS/"
+WORKINGDIR="/home/recorderbot/"
 STARTIDFILE="startid"
 SOXDIR="/usr/bin"
 STOPFILE="stoprecording"
@@ -15,8 +15,11 @@ LOGFILE="output.log"
 VERBOSITY="0"
 
 FILENAME_PREFIX="REC0"
+# format probably can not be changed
 OUTPUT_FORMAT="flac"
-MIN_DURATION="1" # delete recordings shorter than this many minutes
+# delete recordings shorter than this many minutes
+# 0 disables this
+MIN_DURATION="1" 
 
 # see the sox man page for the silence plugin
 ABOVE_PERIODS="1 0.50 0.1%"
@@ -24,7 +27,7 @@ BELOW_PERIODS="2 00:03 0.1%"
 
 tag ()
 {
-  flac -s -f -T "Album=REC Sessions" -T "URL=http://radio.beats.to" -T "Recorded=`date`" $1
+  flac -s -f -T "Comment=Recorded by recorderbot" -T "url=https://github.com/booya/recorderbot" -T "Recorded=`date`" $1
 }
 
 # let's go
