@@ -16,7 +16,7 @@ VERBOSITY="0"
 
 FILENAME_PREFIX="REC0"
 OUTPUT_FORMAT="flac"
-MIN_DURATION="0" # delete recordings shorter than this many minutes
+MIN_DURATION="1" # delete recordings shorter than this many minutes
 
 # see the sox man page for the silence plugin
 ABOVE_PERIODS="1 0.50 0.1%"
@@ -50,13 +50,14 @@ while [ ! -f $STOPFILE ] ;  do
     REC_MINUTES=`echo $REC_DURATION | cut -d: -f2`
 
     if [ $REC_HOURS = "00" ] && [ $REC_MINUTES -lt $MIN_DURATION ]; then
-    echo "Recording discarded; too short ($REC_DURATION)" 
-    rm -f $CURRENT_FILE
-  else
-    echo "Keeping $CURRENT_FILE ($REC_DURATION)."
-    tag $CURRENT_FILE
-    # increment the ID
-    echo $REC_ID " + 1" | bc > $STARTIDFILE
-  fi
+      echo "Recording discarded; too short ($REC_DURATION)" 
+      continue
+    else
+      echo "Keeping $CURRENT_FILE ($REC_DURATION)."
+      tag $CURRENT_FILE
+      # increment the ID
+      echo $REC_ID " + 1" | bc > $STARTIDFILE
+    fi
 
+  fi
 done
